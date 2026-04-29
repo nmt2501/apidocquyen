@@ -31,16 +31,18 @@ function analyzeData(data) {
         return v === "TAI" ? "Tài" : "Xỉu";
     }
 
-    // ===== pattern =====
+    // =========================
+    // PATTERN BASE
+    // =========================
     let patternArr = resultList.map(v => v === "TAI" ? "T" : "X");
     let pattern = patternArr.slice().reverse().join("");
 
     let scoreT = 0;
     let scoreX = 0;
 
-    // ======================================
-    // 🤖 1. MULTI PATTERN MATCH (CHÍNH)
-    // ======================================
+    // =========================
+    // MULTI PATTERN MATCH
+    // =========================
     let weights = { 3: 1, 4: 1.5, 5: 2, 6: 3 };
 
     for (let size = 3; size <= 6; size++) {
@@ -58,22 +60,20 @@ function analyzeData(data) {
 
                 if (next === "T") countT++;
                 if (next === "X") countX++;
-
                 total++;
             }
         }
 
         if (total > 0) {
             let w = weights[size];
-
             scoreT += (countT / total) * w;
             scoreX += (countX / total) * w;
         }
     }
 
-    // ======================================
-    // 🔥 2. CẦU BỆT (STREAK)
-    // ======================================
+    // =========================
+    // 🔥 STREAK
+    // =========================
     let streak = 1;
     for (let i = 1; i < resultList.length; i++) {
         if (resultList[i] === resultList[0]) streak++;
@@ -81,14 +81,13 @@ function analyzeData(data) {
     }
 
     if (streak >= 3) {
-        // bệt mạnh → dễ đảo
         if (resultList[0] === "TAI") scoreX += 2;
         else scoreT += 2;
     }
 
-    // ======================================
-    // 🔄 3. CẦU 1-1 (XEN KẼ)
-    // ======================================
+    // =========================
+    // 🔄 ZIGZAG
+    // =========================
     let isZigzag = true;
     for (let i = 0; i < 6; i++) {
         if (resultList[i] === resultList[i + 1]) {
@@ -98,142 +97,134 @@ function analyzeData(data) {
     }
 
     if (isZigzag) {
-        // tiếp tục xen kẽ
         if (resultList[0] === "TAI") scoreX += 1.5;
         else scoreT += 1.5;
     }
 
-    // ======================================
-    // 🔁 4. ĐẢO NHỊP (2-2 / 3-3)
-    // ======================================
+    // =========================
+    // 🔁 BLOCK
+    // =========================
     let block2 =
         resultList[0] === resultList[1] &&
         resultList[2] === resultList[3] &&
         resultList[0] !== resultList[2];
 
     if (block2) {
-        // theo block
         if (resultList[0] === "TAI") scoreT += 1;
         else scoreX += 1;
     }
 
-    // ======================================
-// ⚡ 5. MICRO PATTERN (121, 131, 123,...)
-// ======================================
-function getSeq(arr, len) {
-    return arr.slice(0, len).map(v => v === "TAI" ? "T" : "X").join("");
-}
+    // =========================
+    // ⚡ MICRO PATTERN FIXED
+    // =========================
+    const seq = (len) =>
+        resultList.slice(0, len).map(v => v === "TAI" ? "T" : "X").join("");
 
-let seq3 = getSeq(resultList, 3);
-let seq4 = getSeq(resultList, 4);
+    let seq3 = seq(3);
+    let seq4 = seq(4);
 
-// ===== 121 / 212 =====
-if (seq3 === "TXT" || seq3 === "XTX") {
-    if (resultList[0] === "TAI") scoreX += 2;
-    else scoreT += 2;
-}
-
-// ===== 131 / 313 =====
-if (seq3 === "TTX" || seq3 === "XXT") {
-    if (resultList[0] === "TAI") scoreX += 1.5;
-    else scoreT += 1.5;
-}
-
-// ===== 123 (tăng dần) =====
-if (seq4 === "TXTT" || seq4 === "XTXT") {
-    if (resultList[0] === "TAI") scoreT += 1.2;
-    else scoreX += 1.2;
-}
-
-// ===== 323 (lệch nhịp) =====
-if (seq4 === "TTXX" || seq4 === "XXTT") {
-    if (resultList[0] === "TAI") scoreT += 1.3;
-    else scoreX += 1.3;
-}
-
-    // ======================================
-// 📈 6. TREND (10 PHIÊN GẦN)
-// ======================================
-let recent = resultList.slice(0, 10);
-
-let tCount = recent.filter(v => v === "TAI").length;
-let xCount = recent.filter(v => v === "XIU").length;
-
-if (tCount > xCount) {
-    scoreT += (tCount / 10) * 2; // scale nhẹ
-} else {
-    scoreX += (xCount / 10) * 2;
-}
-
-// ======================================
-// 🎯 QUYẾT ĐỊNH
-// ======================================
-let du_doan_raw;
-let totalScore = scoreT + scoreX;
-
-if (totalScore > 0) {
-    if (scoreT > scoreX) du_doan_raw = "TAI";
-    else du_doan_raw = "XIU";
-} else {
-    du_doan_raw = resultList[0];
-}
-
-let do_tin_cay = totalScore > 0
-    ? (Math.max(scoreT, scoreX) / totalScore) * 100
-    : 50;
-
-// clamp
-do_tin_cay = Math.max(50, Math.min(95, do_tin_cay));
-
-// ======================================
-// 🔥 XÁC ĐỊNH LOẠI CẦU
-// ======================================
-let loai_cau = "Ngẫu nhiên";
-
-if (streak >= 4) loai_cau = "Cầu bệt dài";
-else if (streak >= 2) loai_cau = "Cầu bệt ngắn";
-else if (isZigzag) loai_cau = "Cầu 1-1";
-else if (block2) loai_cau = "Cầu 2-2";
-else if (seq3 === "TXT" || seq3 === "XTX") loai_cau = "Cầu 1-2-1";
-else if (seq3 === "TTX" || seq3 === "XXT") loai_cau = "Cầu 1-3-1";
-
-// ======================================
-// 📊 TỈ LỆ
-// ======================================
-let ti_le_tai = totalScore > 0
-    ? ((scoreT / totalScore) * 100).toFixed(1)
-    : "50.0";
-
-let ti_le_xiu = totalScore > 0
-    ? ((scoreX / totalScore) * 100).toFixed(1)
-    : "50.0";
-
-// ======================================
-// 📦 RETURN
-// ======================================
-return {
-    phien_truoc: sessionList[0],
-    xuc_xac: diceList[0],
-    tong: sumList[0],
-
-    ket_qua: formatTX(resultList[0]),
-
-    phien_hien_tai: sessionList[0] + 1,
-
-    pattern,
-
-    du_doan: formatTX(du_doan_raw),
-
-    do_tin_cay: do_tin_cay.toFixed(1) + "%",
-
-    chi_tiet: {
-        loai_cau,
-        ti_le_tai: ti_le_tai + "%",
-        ti_le_xiu: ti_le_xiu + "%"
+    // 121 / 212
+    if (seq3 === "TXT" || seq3 === "XTX") {
+        if (resultList[0] === "TAI") scoreX += 2;
+        else scoreT += 2;
     }
-};
-}
 
+    // 131 / 313
+    if (seq3 === "TTX" || seq3 === "XXT") {
+        if (resultList[0] === "TAI") scoreX += 1.5;
+        else scoreT += 1.5;
+    }
+
+    // 123-ish
+    if (seq4 === "TXTT" || seq4 === "XTXT") {
+        if (resultList[0] === "TAI") scoreT += 1.2;
+        else scoreX += 1.2;
+    }
+
+    // 323
+    if (seq4 === "TTXX" || seq4 === "XXTT") {
+        if (resultList[0] === "TAI") scoreT += 1.3;
+        else scoreX += 1.3;
+    }
+
+    // =========================
+    // 📈 TREND 10 PHIÊN
+    // =========================
+    let recent = resultList.slice(0, 10);
+
+    let tCount = recent.filter(v => v === "TAI").length;
+    let xCount = recent.filter(v => v === "XIU").length;
+
+    if (tCount > xCount) {
+        scoreT += (tCount / 10) * 2;
+    } else {
+        scoreX += (xCount / 10) * 2;
+    }
+
+    // =========================
+    // 🎯 DECISION
+    // =========================
+    let totalScore = scoreT + scoreX;
+
+    let du_doan_raw =
+        totalScore > 0
+            ? (scoreT > scoreX ? "TAI" : "XIU")
+            : resultList[0];
+
+    let do_tin_cay =
+        totalScore > 0
+            ? (Math.max(scoreT, scoreX) / totalScore) * 100
+            : 50;
+
+    do_tin_cay = Math.max(50, Math.min(95, do_tin_cay));
+
+    // =========================
+    // 🔥 LOẠI CẦU
+    // =========================
+    let loai_cau = "Ngẫu nhiên";
+
+    if (streak >= 4) loai_cau = "Cầu bệt dài";
+    else if (streak >= 2) loai_cau = "Cầu bệt ngắn";
+    else if (isZigzag) loai_cau = "Cầu 1-1";
+    else if (block2) loai_cau = "Cầu 2-2";
+    else if (seq3 === "TXT" || seq3 === "XTX") loai_cau = "Cầu 1-2-1";
+    else if (seq3 === "TTX" || seq3 === "XXT") loai_cau = "Cầu 1-3-1";
+
+    // =========================
+    // 📊 TỈ LỆ
+    // =========================
+    let ti_le_tai = totalScore > 0
+        ? ((scoreT / totalScore) * 100).toFixed(1)
+        : "50.0";
+
+    let ti_le_xiu = totalScore > 0
+        ? ((scoreX / totalScore) * 100).toFixed(1)
+        : "50.0";
+
+    // =========================
+    // 📦 RETURN
+    // =========================
+    return {
+        phien_truoc: sessionList[0],
+        xuc_xac: diceList[0],
+        tong: sumList[0],
+
+        ket_qua: formatTX(resultList[0]),
+        phien_hien_tai: sessionList[0] + 1,
+
+        pattern,
+
+        du_doan: formatTX(du_doan_raw),
+
+        do_tin_cay: do_tin_cay.toFixed(1) + "%",
+
+        chi_tiet: {
+            loai_cau,
+            ti_le_tai: ti_le_tai + "%",
+            ti_le_xiu: ti_le_xiu + "%"
+        }
+    };
+}
 // ================= FETCH =================
 async function fetchWithCache(key, url) {
     const now = Date.now();
