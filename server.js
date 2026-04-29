@@ -32,7 +32,12 @@ function analyzeData(data) {
         return value === "TAI" ? "Tài" : "Xỉu";
     }
 
-    // ===== pattern =====
+    // ===== pattern chuỗi (trái mới → phải cũ) =====
+    let pattern = resultList
+        .map(v => v === "TAI" ? "T" : "X")
+        .join("");
+
+    // ===== bệt đầu để dự đoán =====
     let last = resultList[0];
     let count = 1;
 
@@ -40,8 +45,6 @@ function analyzeData(data) {
         if (resultList[i] === last) count++;
         else break;
     }
-
-    let pattern = `${formatTX(last)} ${count}`;
 
     // ===== dự đoán =====
     let du_doan_raw = count >= 2
@@ -59,13 +62,13 @@ function analyzeData(data) {
 
         phien_hien_tai: sessionList[0] + 1,
 
-        pattern,
+        pattern, // ✅ giờ là TTXXTTT
+
         du_doan: formatTX(du_doan_raw),
 
         do_tin_cay: do_tin_cay + "%"
     };
 }
-
 // ================= FETCH FUNCTION =================
 async function fetchWithCache(key, url) {
     const now = Date.now();
