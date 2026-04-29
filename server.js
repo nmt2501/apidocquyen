@@ -84,7 +84,6 @@ function analyzeData(data) {
 async function fetchWithCache(key, url) {
     const now = Date.now();
 
-    // nếu cache còn hạn (10s)
     if (cache[key].data && (now - cache[key].time < 10000)) {
         return cache[key].data;
     }
@@ -92,7 +91,8 @@ async function fetchWithCache(key, url) {
     try {
         const res = await axios.get(url, { timeout: 5000 });
 
-        const analyzed = analyzeData(res.data.data);
+        // ✅ FIX Ở ĐÂY
+        const analyzed = analyzeData(res.data);
 
         cache[key] = {
             data: analyzed,
