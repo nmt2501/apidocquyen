@@ -32,28 +32,6 @@ function analyzeData(data) {
         return value === "TAI" ? "Tài" : "Xỉu";
     }
 
-    // ===== thống kê =====
-let thang = 0;
-let thua = 0;
-
-for (let i = 2; i < resultList.length; i++) {
-    let last = resultList[i - 1];     // phiên trước
-    let prev = resultList[i - 2];     // trước nữa
-    let current = resultList[i];      // kết quả thật
-
-    // ===== logic dự đoán giống phần chính =====
-    let du_doan;
-
-    if (last === prev) {
-        du_doan = (last === "TAI") ? "XIU" : "TAI";
-    } else {
-        du_doan = last;
-    }
-
-    if (du_doan === current) thang++;
-    else thua++;
-}
-
     // ===== pattern =====
     let last = resultList[0];
     let count = 1;
@@ -84,12 +62,7 @@ for (let i = 2; i < resultList.length; i++) {
         pattern,
         du_doan: formatTX(du_doan_raw),
 
-        do_tin_cay: do_tin_cay + "%",
-
-        thong_ke: {
-            thang,
-            thua
-        }
+        do_tin_cay: do_tin_cay + "%"
     };
 }
 
