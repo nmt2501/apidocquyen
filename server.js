@@ -23,9 +23,15 @@ function analyzeData(data) {
 
     let history = data.slice(0, 20);
 
-    let resultList = history.map(i => i.result); // tai/xiu
+    // ===== chuẩn hóa dữ liệu =====
+    let resultList = history.map(i => (i.result || "").toUpperCase());
     let diceList = history.map(i => i.dice);
     let sumList = history.map(i => i.total);
+
+    // ===== format Tài/Xỉu =====
+    function formatTX(value) {
+        return value === "TAI" ? "Tài" : "Xỉu";
+    }
 
     // ===== thống kê =====
     let thang = 0;
@@ -45,11 +51,11 @@ function analyzeData(data) {
         else break;
     }
 
-    let pattern = `${last} ${count}`;
+    let pattern = `${formatTX(last)} ${count}`;
 
     // ===== dự đoán =====
-    let du_doan = count >= 2
-        ? (last === "tai" ? "xiu" : "tai")
+    let du_doan_raw = count >= 2
+        ? (last === "TAI" ? "XIU" : "TAI")
         : last;
 
     // ===== độ tin cậy =====
@@ -59,12 +65,14 @@ function analyzeData(data) {
         phien_truoc: history[0]?.session,
         xuc_xac: diceList[0],
         tong: sumList[0],
-        ket_qua: resultList[0],
+
+        ket_qua: formatTX(last),
 
         phien_hien_tai: history[0]?.session + 1,
 
         pattern,
-        du_doan,
+        du_doan: formatTX(du_doan_raw),
+
         do_tin_cay: do_tin_cay + "%",
 
         thong_ke: {
