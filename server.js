@@ -335,11 +335,10 @@ return {
         ti_le_xiu: ti_le_xiu + "%"
     },
 
-    // ✅ PHẢI CÓ DẤU PHẨY Ở TRÊN
 thong_ke: {
-    thang: 0,
-    thua: 0,
-    ti_le_thang: "0.0%"
+    thang,
+    thua,
+    ti_le_thang: ti_le_thang + "%"
 },
 
     nhan_dien: {
