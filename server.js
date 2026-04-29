@@ -201,6 +201,49 @@ function analyzeData(data) {
         ? ((scoreX / totalScore) * 100).toFixed(1)
         : "50.0";
 
+    // ======================================
+// 📊 7. THỐNG KÊ THẮNG / THUA (BACKTEST)
+// ======================================
+let thang = 0;
+let thua = 0;
+let totalCheck = 0;
+
+// giả lập dự đoán từ quá khứ để test hiệu suất
+for (let i = 6; i < resultList.length; i++) {
+
+    let subHistory = resultList.slice(i, i + 10);
+    if (subHistory.length < 3) continue;
+
+    let tempScoreT = 0;
+    let tempScoreX = 0;
+
+    let base = subHistory[0];
+
+    // mini logic đơn giản hóa để test
+    let streak = 1;
+    for (let j = 1; j < subHistory.length; j++) {
+        if (subHistory[j] === base) streak++;
+        else break;
+    }
+
+    let predict =
+        streak >= 2
+            ? (base === "TAI" ? "XIU" : "TAI")
+            : base;
+
+    let actual = resultList[i];
+
+    if (predict === actual) thang++;
+    else thua++;
+
+    totalCheck++;
+}
+
+let ti_le_thang =
+    totalCheck > 0
+        ? ((thang / totalCheck) * 100).toFixed(1)
+        : "0.0";
+
     // =========================
     // 📦 RETURN
     // =========================
@@ -222,6 +265,12 @@ function analyzeData(data) {
             loai_cau,
             ti_le_tai: ti_le_tai + "%",
             ti_le_xiu: ti_le_xiu + "%"
+
+            thong_ke: {
+    thang,
+    thua,
+    ti_le_thang: ti_le_thang + "%"
+}
         }
     };
 }
