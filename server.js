@@ -19,9 +19,9 @@ let cache = {
 
 // ================= HELPER =================
 function analyzeData(data) {
-    if (!data || !data.list || data.list.length < 2) return null;
+    if (!data || !data.list || data.list.length < 10) return null;
 
-    let history = data.list.slice(0, 20);
+    let history = data.list.slice(0, 50); // tăng data cho chính xác hơn
 
     let resultList = history.map(i => (i.resultTruyenThong || "").toUpperCase());
     let diceList = history.map(i => i.dices);
@@ -32,45 +32,99 @@ function analyzeData(data) {
         return value === "TAI" ? "Tài" : "Xỉu";
     }
 
-    // ===== pattern chuỗi (trái mới → phải cũ) =====
-let pattern = resultList
-    .slice() // tránh ảnh hưởng mảng gốc
-    .reverse()
-    .map(v => v === "TAI" ? "T" : "X")
-    .join("");
+    // ===== pattern (cũ → mới cho dễ đọc) =====
+    let patternArr = resultList.map(v => v === "TAI" ? "T" : "X");
 
-    // ===== bệt đầu để dự đoán =====
-    let last = resultList[0];
-    let count = 1;
+    let pattern = patternArr
+        .slice()
+        .reverse()
+        .join("");
 
-    for (let i = 1; i < resultList.length; i++) {
-        if (resultList[i] === last) count++;
-        else break;
+    // =========================
+    // 🔥 PATTERN MATCHING AI
+    // =========================
+
+    let size = 5; // độ dài pattern mẫu (4-6 là đẹp)
+
+    let currentPattern = patternArr.slice(0, size).join("");
+
+    let countT = 0;
+    let countX = 0;
+    let total = 0;
+
+    for (let i = 1; i <= patternArr.length - size - 1; i++) {
+        let sub = patternArr.slice(i, i + size).join("");
+
+        if (sub === currentPattern) {
+            let next = patternArr[i - 1]; // vì index 0 là mới nhất
+
+            if (next === "T") countT++;
+            if (next === "X") countX++;
+
+            total++;
+        }
     }
 
-    // ===== dự đoán =====
-    let du_doan_raw = count >= 2
-        ? (last === "TAI" ? "XIU" : "TAI")
-        : last;
+    // =========================
+    // 🎯 DỰ ĐOÁN + ĐỘ TIN CẬY
+    // =========================
 
-    let do_tin_cay = Math.min(95, 50 + count * 10);
+    let du_doan_raw;
+    let do_tin_cay;
+
+    if (total > 0) {
+        if (countT > countX) {
+            du_doan_raw = "TAI";
+            do_tin_cay = ((countT / total) * 100).toFixed(1);
+        } else if (countX > countT) {
+            du_doan_raw = "XIU";
+            do_tin_cay = ((countX / total) * 100).toFixed(1);
+        } else {
+            du_doan_raw = resultList[0];
+            do_tin_cay = 50;
+        }
+    } else {
+        // fallback về bệt
+        let last = resultList[0];
+        let count = 1;
+
+        for (let i = 1; i < resultList.length; i++) {
+            if (resultList[i] === last) count++;
+            else break;
+        }
+
+        du_doan_raw = count >= 2
+            ? (last === "TAI" ? "XIU" : "TAI")
+            : last;
+
+        do_tin_cay = 50;
+    }
 
     return {
         phien_truoc: sessionList[0],
         xuc_xac: diceList[0],
         tong: sumList[0],
 
-        ket_qua: formatTX(last),
+        ket_qua: formatTX(resultList[0]),
 
         phien_hien_tai: sessionList[0] + 1,
 
-        pattern, // ✅ giờ là TTXXTTT
+        pattern,
 
         du_doan: formatTX(du_doan_raw),
 
-        do_tin_cay: do_tin_cay + "%"
+        do_tin_cay: do_tin_cay + "%",
+
+        // 🔥 thêm debug xịn
+        pattern_detail: {
+            mau: currentPattern,
+            so_lan_gap: total,
+            T: countT,
+            X: countX
+        }
     };
 }
+
 // ================= FETCH FUNCTION =================
 async function fetchWithCache(key, url) {
     const now = Date.now();
