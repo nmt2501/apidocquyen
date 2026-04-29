@@ -17,6 +17,12 @@ let cache = {
     tx: { data: null, time: 0 }
 };
 
+let cacheStat = {
+    date: null,
+    thang: 0,
+    thua: 0
+};
+
 function analyzeData(data) {
     if (!data || !data.list || data.list.length < 10) return null;
 
@@ -201,11 +207,23 @@ function analyzeData(data) {
         ? ((scoreX / totalScore) * 100).toFixed(1)
         : "50.0";
 
+// ======================================
+// 📊 RESET THEO NGÀY (FIX CHUẨN)
+// ======================================
+let today = new Date().toISOString().slice(0, 10);
+
+// nếu muốn cache theo ngày
+if (!cacheStat.date || cacheStat.date !== today) {
+    cacheStat.date = today;
+}
+
+// ======================================
+// 📊 THỐNG KÊ TỪ CON SỐ 0 (MỖI REQUEST TÍNH LẠI)
+// ======================================
 let thang = 0;
 let thua = 0;
-let totalCheck = 0;
 
-// hàm dự đoán (phải giống logic bạn đang dùng ở trên)
+// hàm dự đoán giống logic chính
 function predictSimple(arr, index) {
     let base = arr[index - 1];
 
@@ -220,24 +238,19 @@ function predictSimple(arr, index) {
         : base;
 }
 
-// so sánh từ đầu → cuối
+// loop backtest
 for (let i = 1; i < resultList.length; i++) {
 
     let actual = resultList[i];
     let predict = predictSimple(resultList, i);
 
-    if (predict === actual) {
-        thang += 1;   // ✅ trùng = +1 thắng
-    } else {
-        thua += 1;    // ❌ sai = +1 thua
-    }
-
-    totalCheck += 1;
+    if (predict === actual) thang++;
+    else thua++;
 }
 
 let ti_le_thang =
-    totalCheck > 0
-        ? ((thang / totalCheck) * 100).toFixed(1)
+    (thang + thua) > 0
+        ? ((thang / (thang + thua)) * 100).toFixed(1)
         : "0.0";
 
 // ======================================
