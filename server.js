@@ -117,6 +117,54 @@ function analyzeData(data) {
         else scoreX += 1;
     }
 
+    // ======================================
+// ⚡ 5. MICRO PATTERN (121, 131, 123,...)
+// ======================================
+function getSeq(arr, len) {
+    return arr.slice(0, len).map(v => v === "TAI" ? "T" : "X").join("");
+}
+
+let seq3 = getSeq(resultList, 3);
+let seq4 = getSeq(resultList, 4);
+
+// ===== 121 / 212 =====
+if (seq3 === "TXT" || seq3 === "XTX") {
+    if (resultList[0] === "TAI") scoreX += 2;
+    else scoreT += 2;
+}
+
+// ===== 131 / 313 =====
+if (seq3 === "TTX" || seq3 === "XXT") {
+    if (resultList[0] === "TAI") scoreX += 1.5;
+    else scoreT += 1.5;
+}
+
+// ===== 123 (tăng dần) =====
+if (seq4 === "TXTT" || seq4 === "XTXT") {
+    if (resultList[0] === "TAI") scoreT += 1.2;
+    else scoreX += 1.2;
+}
+
+// ===== 323 (lệch nhịp) =====
+if (seq4 === "TTXX" || seq4 === "XXTT") {
+    if (resultList[0] === "TAI") scoreT += 1.3;
+    else scoreX += 1.3;
+}
+
+    // ======================================
+// 📈 6. TREND (10 PHIÊN GẦN)
+// ======================================
+let recent = resultList.slice(0, 10);
+
+let tCount = recent.filter(v => v === "TAI").length;
+let xCount = recent.filter(v => v === "XIU").length;
+
+if (tCount > xCount) {
+    scoreT += (tCount / 10) * 2; // scale nhẹ
+} else {
+    scoreX += (xCount / 10) * 2;
+}
+
 // ======================================
 // 🎯 QUYẾT ĐỊNH
 // ======================================
@@ -142,18 +190,12 @@ do_tin_cay = Math.max(50, Math.min(95, do_tin_cay));
 // ======================================
 let loai_cau = "Ngẫu nhiên";
 
-if (streak >= 3) {
-    loai_cau = "Cầu bệt";
-} else if (isZigzag) {
-    loai_cau = "Cầu 1-1";
-} else {
-    let block2 =
-        resultList[0] === resultList[1] &&
-        resultList[2] === resultList[3] &&
-        resultList[0] !== resultList[2];
-
-    if (block2) loai_cau = "Cầu 2-2";
-}
+if (streak >= 4) loai_cau = "Cầu bệt dài";
+else if (streak >= 2) loai_cau = "Cầu bệt ngắn";
+else if (isZigzag) loai_cau = "Cầu 1-1";
+else if (block2) loai_cau = "Cầu 2-2";
+else if (seq3 === "TXT" || seq3 === "XTX") loai_cau = "Cầu 1-2-1";
+else if (seq3 === "TTX" || seq3 === "XXT") loai_cau = "Cầu 1-3-1";
 
 // ======================================
 // 📊 TỈ LỆ
