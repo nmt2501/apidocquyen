@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 3000;
 const API_MD5 = "https://wtxmd52.tele68.com/v1/txmd5/sessions";
 const API_TX = "https://wtx.tele68.com/v1/tx/sessions";
 
-// cache đơn giản (10 giây)
+// cache 10s
 let cache = {
     md5: { data: null, time: 0 },
     tx: { data: null, time: 0 }
@@ -21,7 +21,7 @@ let cache = {
 function analyzeData(data) {
     if (!data || !data.list || data.list.length < 10) return null;
 
-    let history = data.list.slice(0, 50); // tăng data cho chính xác hơn
+    let history = data.list.slice(0, 50);
 
     let resultList = history.map(i => (i.resultTruyenThong || "").toUpperCase());
     let diceList = history.map(i => i.dices);
@@ -32,59 +32,71 @@ function analyzeData(data) {
         return value === "TAI" ? "Tài" : "Xỉu";
     }
 
-    // ===== pattern (cũ → mới cho dễ đọc) =====
+    // ===== pattern (cũ → mới) =====
     let patternArr = resultList.map(v => v === "TAI" ? "T" : "X");
 
-    let pattern = patternArr
-        .slice()
-        .reverse()
-        .join("");
+    let pattern = patternArr.slice().reverse().join("");
 
     // =========================
-    // 🔥 PATTERN MATCHING AI
+    // 🤖 MULTI PATTERN AI
     // =========================
+    let weights = {
+        3: 1,
+        4: 1.5,
+        5: 2,
+        6: 3
+    };
 
-    let size = 5; // độ dài pattern mẫu (4-6 là đẹp)
+    let scoreT = 0;
+    let scoreX = 0;
+    let totalWeight = 0;
 
-    let currentPattern = patternArr.slice(0, size).join("");
+    for (let size = 3; size <= 6; size++) {
+        let currentPattern = patternArr.slice(0, size).join("");
 
-    let countT = 0;
-    let countX = 0;
-    let total = 0;
+        let countT = 0;
+        let countX = 0;
+        let total = 0;
 
-    for (let i = 1; i <= patternArr.length - size - 1; i++) {
-        let sub = patternArr.slice(i, i + size).join("");
+        for (let i = 1; i <= patternArr.length - size - 1; i++) {
+            let sub = patternArr.slice(i, i + size).join("");
 
-        if (sub === currentPattern) {
-            let next = patternArr[i - 1]; // vì index 0 là mới nhất
+            if (sub === currentPattern) {
+                let next = patternArr[i - 1];
 
-            if (next === "T") countT++;
-            if (next === "X") countX++;
+                if (next === "T") countT++;
+                if (next === "X") countX++;
 
-            total++;
+                total++;
+            }
+        }
+
+        if (total > 0) {
+            let w = weights[size];
+
+            scoreT += (countT / total) * w;
+            scoreX += (countX / total) * w;
+
+            totalWeight += w;
         }
     }
 
     // =========================
-    // 🎯 DỰ ĐOÁN + ĐỘ TIN CẬY
+    // 🎯 QUYẾT ĐỊNH
     // =========================
-
     let du_doan_raw;
     let do_tin_cay;
 
-    if (total > 0) {
-        if (countT > countX) {
+    if (totalWeight > 0) {
+        if (scoreT > scoreX) {
             du_doan_raw = "TAI";
-            do_tin_cay = ((countT / total) * 100).toFixed(1);
-        } else if (countX > countT) {
-            du_doan_raw = "XIU";
-            do_tin_cay = ((countX / total) * 100).toFixed(1);
+            do_tin_cay = (scoreT / (scoreT + scoreX)) * 100;
         } else {
-            du_doan_raw = resultList[0];
-            do_tin_cay = 50;
+            du_doan_raw = "XIU";
+            do_tin_cay = (scoreX / (scoreT + scoreX)) * 100;
         }
     } else {
-        // fallback về bệt
+        // fallback bệt
         let last = resultList[0];
         let count = 1;
 
@@ -100,6 +112,17 @@ function analyzeData(data) {
         do_tin_cay = 50;
     }
 
+    // boost nhẹ nếu bệt mạnh
+    if (
+        resultList[0] === resultList[1] &&
+        resultList[1] === resultList[2]
+    ) {
+        do_tin_cay += 5;
+    }
+
+    // clamp
+    do_tin_cay = Math.max(50, Math.min(95, do_tin_cay)).toFixed(1);
+
     return {
         phien_truoc: sessionList[0],
         xuc_xac: diceList[0],
@@ -113,19 +136,11 @@ function analyzeData(data) {
 
         du_doan: formatTX(du_doan_raw),
 
-        do_tin_cay: do_tin_cay + "%",
-
-        // 🔥 thêm debug xịn
-        pattern_detail: {
-            mau: currentPattern,
-            so_lan_gap: total,
-            T: countT,
-            X: countX
-        }
+        do_tin_cay: do_tin_cay + "%"
     };
 }
 
-// ================= FETCH FUNCTION =================
+// ================= FETCH =================
 async function fetchWithCache(key, url) {
     const now = Date.now();
 
@@ -136,7 +151,6 @@ async function fetchWithCache(key, url) {
     try {
         const res = await axios.get(url, { timeout: 5000 });
 
-        // ✅ FIX Ở ĐÂY
         const analyzed = analyzeData(res.data);
 
         cache[key] = {
@@ -153,19 +167,15 @@ async function fetchWithCache(key, url) {
 }
 
 // ================= ROUTES =================
-
-// test
 app.get("/", (req, res) => {
     res.send("API Trung Gian Dang Chay OK");
 });
 
-// MD5
 app.get("/api/lc/md5", async (req, res) => {
     const data = await fetchWithCache("md5", API_MD5);
     res.json(data);
 });
 
-// Tài xỉu thường
 app.get("/api/lc/taixiu", async (req, res) => {
     const data = await fetchWithCache("tx", API_TX);
     res.json(data);
