@@ -247,33 +247,31 @@ let ti_le_thang =
     // =========================
     // 📦 RETURN
     // =========================
-    return {
-        phien_truoc: sessionList[0],
-        xuc_xac: diceList[0],
-        tong: sumList[0],
+return {
+    phien_truoc: sessionList[0],
+    xuc_xac: diceList[0],
+    tong: sumList[0],
 
-        ket_qua: formatTX(resultList[0]),
-        phien_hien_tai: sessionList[0] + 1,
+    ket_qua: formatTX(resultList[0]),
+    phien_hien_tai: sessionList[0] + 1,
 
-        pattern,
+    pattern,
+    du_doan: formatTX(du_doan_raw),
+    do_tin_cay: do_tin_cay.toFixed(1) + "%",
 
-        du_doan: formatTX(du_doan_raw),
+    chi_tiet: {
+        loai_cau,
+        ti_le_tai: ti_le_tai + "%",
+        ti_le_xiu: ti_le_xiu + "%"
+    },
 
-        do_tin_cay: do_tin_cay.toFixed(1) + "%",
-
-        chi_tiet: {
-            loai_cau,
-            ti_le_tai: ti_le_tai + "%",
-            ti_le_xiu: ti_le_xiu + "%"
-
-            thong_ke: {
-    thang,
-    thua,
-    ti_le_thang: ti_le_thang + "%"
-}
-        }
-    };
-}
+    // ✅ PHẢI CÓ DẤU PHẨY Ở TRÊN
+    thong_ke: {
+        thang,
+        thua,
+        ti_le_thang: ti_le_thang + "%"
+    }
+};
 // ================= FETCH =================
 async function fetchWithCache(key, url) {
     const now = Date.now();
