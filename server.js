@@ -19,16 +19,15 @@ let cache = {
 
 // ================= HELPER =================
 function analyzeData(data) {
-    if (!data || data.length < 2) return null;
+    if (!data || !data.list || data.list.length < 2) return null;
 
-    let history = data.slice(0, 20);
+    let history = data.list.slice(0, 20);
 
-    // ===== chuẩn hóa dữ liệu =====
-    let resultList = history.map(i => (i.result || "").toUpperCase());
-    let diceList = history.map(i => i.dice);
-    let sumList = history.map(i => i.total);
+    let resultList = history.map(i => (i.resultTruyenThong || "").toUpperCase());
+    let diceList = history.map(i => i.dices);
+    let sumList = history.map(i => i.point);
+    let sessionList = history.map(i => i.id);
 
-    // ===== format Tài/Xỉu =====
     function formatTX(value) {
         return value === "TAI" ? "Tài" : "Xỉu";
     }
@@ -58,17 +57,16 @@ function analyzeData(data) {
         ? (last === "TAI" ? "XIU" : "TAI")
         : last;
 
-    // ===== độ tin cậy =====
     let do_tin_cay = Math.min(95, 50 + count * 10);
 
     return {
-        phien_truoc: history[0]?.session,
+        phien_truoc: sessionList[0],
         xuc_xac: diceList[0],
         tong: sumList[0],
 
         ket_qua: formatTX(last),
 
-        phien_hien_tai: history[0]?.session + 1,
+        phien_hien_tai: sessionList[0] + 1,
 
         pattern,
         du_doan: formatTX(du_doan_raw),
