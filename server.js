@@ -33,9 +33,11 @@ function analyzeData(data) {
     }
 
     // ===== pattern chuỗi (trái mới → phải cũ) =====
-    let pattern = resultList
-        .map(v => v === "TAI" ? "T" : "X")
-        .join("");
+let pattern = resultList
+    .slice() // tránh ảnh hưởng mảng gốc
+    .reverse()
+    .map(v => v === "TAI" ? "T" : "X")
+    .join("");
 
     // ===== bệt đầu để dự đoán =====
     let last = resultList[0];
