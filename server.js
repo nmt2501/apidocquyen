@@ -201,14 +201,11 @@ function analyzeData(data) {
         ? ((scoreX / totalScore) * 100).toFixed(1)
         : "50.0";
 
-// ======================================
-// 📊 THỐNG KÊ CHUẨN (SO SÁNH THỰC TẾ)
-// ======================================
 let thang = 0;
 let thua = 0;
 let totalCheck = 0;
 
-// dùng cùng 1 logic dự đoán thật
+// hàm dự đoán (phải giống logic bạn đang dùng ở trên)
 function predictSimple(arr, index) {
     let base = arr[index - 1];
 
@@ -223,18 +220,19 @@ function predictSimple(arr, index) {
         : base;
 }
 
-// bắt đầu từ index 1 → mới có dữ liệu để so sánh
+// so sánh từ đầu → cuối
 for (let i = 1; i < resultList.length; i++) {
 
     let actual = resultList[i];
     let predict = predictSimple(resultList, i);
 
-    if (!actual) continue;
+    if (predict === actual) {
+        thang += 1;   // ✅ trùng = +1 thắng
+    } else {
+        thua += 1;    // ❌ sai = +1 thua
+    }
 
-    if (predict === actual) thang++;
-    else thua++;
-
-    totalCheck++;
+    totalCheck += 1;
 }
 
 let ti_le_thang =
@@ -325,11 +323,11 @@ return {
     },
 
     // ✅ PHẢI CÓ DẤU PHẨY Ở TRÊN
-    thong_ke: {
-        thang,
-        thua,
-        ti_le_thang: ti_le_thang + "%"
-    },
+thong_ke: {
+    thang: 0,
+    thua: 0,
+    ti_le_thang: "0.0%"
+},
 
     nhan_dien: {
     loai_cau: nhan_dien_cau,
