@@ -202,33 +202,32 @@ function analyzeData(data) {
         : "50.0";
 
 // ======================================
-// 📊 THỐNG KÊ TỪ CON SỐ 0 (CHUẨN BACKTEST)
+// 📊 THỐNG KÊ CHUẨN (SO SÁNH THỰC TẾ)
 // ======================================
 let thang = 0;
 let thua = 0;
 let totalCheck = 0;
 
-// bắt đầu từ phiên cũ nhất → mới nhất
-for (let i = resultList.length - 10; i >= 1; i--) {
+// dùng cùng 1 logic dự đoán thật
+function predictSimple(arr, index) {
+    let base = arr[index - 1];
 
-    let sub = resultList.slice(i, i + 10);
-    if (sub.length < 5) continue;
-
-    let base = sub[0];
-
-    // ===== logic dự đoán giống system thật =====
     let streak = 1;
-    for (let j = 1; j < sub.length; j++) {
-        if (sub[j] === base) streak++;
+    for (let i = index - 2; i >= 0; i--) {
+        if (arr[i] === base) streak++;
         else break;
     }
 
-    let predict =
-        streak >= 2
-            ? (base === "TAI" ? "XIU" : "TAI")
-            : base;
+    return streak >= 2
+        ? (base === "TAI" ? "XIU" : "TAI")
+        : base;
+}
 
-    let actual = resultList[i - 1]; // phiên thật tiếp theo
+// bắt đầu từ index 1 → mới có dữ liệu để so sánh
+for (let i = 1; i < resultList.length; i++) {
+
+    let actual = resultList[i];
+    let predict = predictSimple(resultList, i);
 
     if (!actual) continue;
 
