@@ -201,28 +201,25 @@ function analyzeData(data) {
         ? ((scoreX / totalScore) * 100).toFixed(1)
         : "50.0";
 
-    // ======================================
-// 📊 7. THỐNG KÊ THẮNG / THUA (BACKTEST)
+// ======================================
+// 📊 THỐNG KÊ TỪ CON SỐ 0 (CHUẨN BACKTEST)
 // ======================================
 let thang = 0;
 let thua = 0;
 let totalCheck = 0;
 
-// giả lập dự đoán từ quá khứ để test hiệu suất
-for (let i = 6; i < resultList.length; i++) {
+// bắt đầu từ phiên cũ nhất → mới nhất
+for (let i = resultList.length - 10; i >= 1; i--) {
 
-    let subHistory = resultList.slice(i, i + 10);
-    if (subHistory.length < 3) continue;
+    let sub = resultList.slice(i, i + 10);
+    if (sub.length < 5) continue;
 
-    let tempScoreT = 0;
-    let tempScoreX = 0;
+    let base = sub[0];
 
-    let base = subHistory[0];
-
-    // mini logic đơn giản hóa để test
+    // ===== logic dự đoán giống system thật =====
     let streak = 1;
-    for (let j = 1; j < subHistory.length; j++) {
-        if (subHistory[j] === base) streak++;
+    for (let j = 1; j < sub.length; j++) {
+        if (sub[j] === base) streak++;
         else break;
     }
 
@@ -231,7 +228,9 @@ for (let i = 6; i < resultList.length; i++) {
             ? (base === "TAI" ? "XIU" : "TAI")
             : base;
 
-    let actual = resultList[i];
+    let actual = resultList[i - 1]; // phiên thật tiếp theo
+
+    if (!actual) continue;
 
     if (predict === actual) thang++;
     else thua++;
@@ -243,6 +242,67 @@ let ti_le_thang =
     totalCheck > 0
         ? ((thang / totalCheck) * 100).toFixed(1)
         : "0.0";
+
+// ======================================
+// 🧠 8. NHẬN DIỆN LOẠI CẦU NÂNG CAO
+// ======================================
+
+let flipCount = 0;   // số lần đảo
+let sameCount = 1;   // chuỗi giống nhau
+let maxStreak = 1;   // bệt dài nhất
+
+for (let i = 1; i < resultList.length; i++) {
+    if (resultList[i] === resultList[i - 1]) {
+        sameCount++;
+    } else {
+        flipCount++;
+        maxStreak = Math.max(maxStreak, sameCount);
+        sameCount = 1;
+    }
+}
+
+// check streak cuối
+maxStreak = Math.max(maxStreak, sameCount);
+
+// ======================================
+// 📏 CẦU NGẮN / DÀI
+// ======================================
+let cau_type = "Ngắn";
+
+if (maxStreak >= 5) cau_type = "Dài";
+else if (maxStreak >= 3) cau_type = "Trung bình";
+
+// ======================================
+// 🔄 CẦU ĐẢO (dao liên tục)
+// ======================================
+let cau_dao = flipCount >= 8; // nhiều lần đổi trong 20-60 phiên
+
+// ======================================
+// 🎭 CẦU BỊP / CẦU CHỈNH (nhiễu cao)
+// ======================================
+// đặc trưng: đảo nhiều + không có streak rõ + pattern rối
+let entropyScore = flipCount / resultList.length;
+
+let cau_bip = false;
+
+if (entropyScore > 0.6 && maxStreak <= 2) {
+    cau_bip = true;
+}
+
+// ======================================
+// 📦 GOM NHẬN DIỆN
+// ======================================
+let nhan_dien_cau = "Bình thường";
+
+if (cau_bip) {
+    nhan_dien_cau = "Cầu bịp / cầu chỉnh";
+} else if (cau_dao) {
+    nhan_dien_cau = "Cầu đảo";
+} else if (maxStreak >= 3) {
+    nhan_dien_cau = "Cầu bệt";
+} else {
+    nhan_dien_cau = "Cầu thường";
+}
 
     // =========================
     // 📦 RETURN
@@ -270,7 +330,14 @@ return {
         thang,
         thua,
         ti_le_thang: ti_le_thang + "%"
-    }
+    },
+
+    nhan_dien: {
+    loai_cau: nhan_dien_cau,
+    cau_do_dai: cau_type,
+    do_on_dinh: maxStreak,
+    so_lan_dao: flipCount
+}
 };
 }
 // ================= FETCH =================
